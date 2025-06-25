@@ -1,1 +1,6 @@
-# Math_with_Daniil_Dmitrievich_Frontend
+# ErofeevClub_Frontend
+Образовательная платформа для подготовки школьников к ЕГЭ и ОГЭ по математике.
+# Стек:
+Backend - .Net Core
+Frontend - Blazor WebAssembly (MudBlazor)
+DB - PostgreSQL
