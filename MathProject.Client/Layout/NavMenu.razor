@@ -1,5 +1,16 @@
-﻿<MudNavMenu>
+﻿@using MathProject.Client.DTOS.TrainingCategory
+<MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Главная</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+    
+    <MudListItem T="string" Icon="@Icons.Material.Filled.Send" Text="Sent mail">
+        <NestedList>
+            <MudListItem T="string">Re: Meeting tomorrow</MudListItem>
+            <MudListItem T="string">Fwd: JavaScript memes xD</MudListItem>
+        </NestedList>
+    </MudListItem>
 </MudNavMenu>
+
+@code
+{
+    private ClientTrainingCategoryDetailedDTO[]? _trainingCategoryDetailed;
+}

@@ -1,6 +1,5 @@
 ﻿@using MathProject.Client.DTOS
 @inherits LayoutComponentBase
-@using MudBlazor
 @inject HttpClient HttpClient
 
 <MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
@@ -10,7 +9,7 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())"/>
-        <MudText Typo="Typo.h5" Class="ml-3">ErofeevClub</MudText>
+        <MudLink Href="" Underline="Underline.None" Color="Color.Default"><MudText Typo="Typo.h5" Class="ml-3">ErofeevClub</MudText></MudLink>
         <MudSpacer/>
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
         <MudMenu Dense
@@ -60,10 +59,18 @@
     
     /*Мои переменные*/
     private ClientSubjectDTO[]? _subjects;
+    
+    [Inject] IJSRuntime JSRuntime { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        
+        var storageResult = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "isDarkMode");
+        if (bool.TryParse(storageResult, out var isDarkMode))
+        {
+            _isDarkMode = isDarkMode;
+        }
         
         _drawerOpen = false;
         
@@ -95,7 +102,7 @@
     {
         _isDarkMode = !_isDarkMode;
 
-        StateHasChanged();
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isDarkMode", _isDarkMode.ToString());
     }
 
     private readonly PaletteLight _lightPalette = new()
