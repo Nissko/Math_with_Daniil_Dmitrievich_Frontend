@@ -1,16 +1,79 @@
-﻿@using MathProject.Client.DTOS.TrainingCategory
+﻿@using MathProject.Client.DTOS.DirectionOfTraining
+@using MathProject.Client.DTOS.TrainingCategory
+@inject HttpClient HttpClient
+@inject NavigationManager NavManager
+
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Главная</MudNavLink>
-    
-    <MudListItem T="string" Icon="@Icons.Material.Filled.Send" Text="Sent mail">
-        <NestedList>
-            <MudListItem T="string">Re: Meeting tomorrow</MudListItem>
-            <MudListItem T="string">Fwd: JavaScript memes xD</MudListItem>
-        </NestedList>
-    </MudListItem>
+    <MudListItem T="string" Text="Главная" @onclick="NavToHomePage"></MudListItem>
+
+    @if (_trainingCategories != null)
+    {
+        foreach (var trainingCategory in _trainingCategories)
+        {
+            <MudListItem T="string" Text="@trainingCategory.Name">
+                <NestedList>
+                    @if (_directionOfTrainings != null)
+                    {
+                        var filtered = _directionOfTrainings
+                            .Where(dot => dot.TrainingCategoryId == trainingCategory.Id)
+                            .ToList();
+
+                        if (filtered.Count > 0)
+                        {
+                            @foreach (var directionOfTraining in filtered)
+                            {
+                                <MudListItem T="string">@directionOfTraining.Name</MudListItem>
+                            }
+                        }
+                        else
+                        {
+                            <MudListItem T="string" Disabled="true">Скоро появятся</MudListItem>
+                        }
+                    }
+                    else
+                    {
+                        <MudProgressCircular Size="Size.Small" Color="Color.Secondary" Indeterminate="true"/>
+                    }
+                </NestedList>
+            </MudListItem>
+        }
+    }
+    else
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+    }
+
 </MudNavMenu>
 
 @code
 {
-    private ClientTrainingCategoryDetailedDTO[]? _trainingCategoryDetailed;
+    private Guid _subjectId = Guid.Parse("d7787d23-15c3-45c1-ad6c-0904c73451f7");
+    private ClientTrainingCategoryFromSubjectIdDTO[]? _trainingCategories;
+    private ClientDirectionOfTrainingFromSubjectIdDTO[]? _directionOfTrainings;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        _trainingCategories = await HttpClient
+            .GetFromJsonAsync<ClientTrainingCategoryFromSubjectIdDTO[]?>
+                ($"Subject/get-training-categories/{_subjectId}");
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    { 
+        await base.OnAfterRenderAsync(firstRender);
+        
+        if (firstRender)
+        {
+            _directionOfTrainings = await HttpClient
+                .GetFromJsonAsync<ClientDirectionOfTrainingFromSubjectIdDTO[]?>
+                    ($"DirectionOfTraining/get-direcrion-of-trainigng-from-subject-id/{_subjectId}");
+            StateHasChanged();
+        }
+    }
+
+    private void NavToHomePage()
+    {
+        NavManager.NavigateTo("/");
+    }
 }
