@@ -1,5 +1,6 @@
 ﻿@using MathProject.Client.DTOS.DirectionOfTraining
 @using MathProject.Client.DTOS.TrainingCategory
+@using MathProject.Client.Enums.SubjectEnumeration
 @inject HttpClient HttpClient
 @inject NavigationManager NavManager
 
@@ -47,28 +48,37 @@
 
 @code
 {
-    private Guid _subjectId = Guid.Parse("d7787d23-15c3-45c1-ad6c-0904c73451f7");
+    //Для работы локального хранилища
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    private Guid _selectedSubjectId;
     private ClientTrainingCategoryFromSubjectIdDTO[]? _trainingCategories;
     private ClientDirectionOfTrainingFromSubjectIdDTO[]? _directionOfTrainings;
     
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+
+        await GetSelectedSubjectId();
+        
         _trainingCategories = await HttpClient
             .GetFromJsonAsync<ClientTrainingCategoryFromSubjectIdDTO[]?>
-                ($"Subject/get-training-categories/{_subjectId}");
+                ($"Subject/get-training-categories/{_selectedSubjectId}");
+        _directionOfTrainings = await HttpClient
+            .GetFromJsonAsync<ClientDirectionOfTrainingFromSubjectIdDTO[]?>
+                ($"DirectionOfTraining/get-direction-of-training-from-subject-id/{_selectedSubjectId}");
     }
     
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    { 
-        await base.OnAfterRenderAsync(firstRender);
-        
-        if (firstRender)
+    private async Task GetSelectedSubjectId()
+    {
+        var storageSubjIdRes = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "curSubjId");
+
+        if (Guid.TryParse(storageSubjIdRes, out var selSubjId))
         {
-            _directionOfTrainings = await HttpClient
-                .GetFromJsonAsync<ClientDirectionOfTrainingFromSubjectIdDTO[]?>
-                    ($"DirectionOfTraining/get-direcrion-of-trainigng-from-subject-id/{_subjectId}");
-            StateHasChanged();
+            _selectedSubjectId = selSubjId;
+        }
+        else
+        {
+            _selectedSubjectId = ClientSubjectEnumeration.Math.Id;
         }
     }
 

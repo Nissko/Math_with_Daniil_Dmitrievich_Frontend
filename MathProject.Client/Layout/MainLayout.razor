@@ -1,6 +1,8 @@
 ﻿@using MathProject.Client.DTOS
+@using MathProject.Client.Enums.SubjectEnumeration
 @inherits LayoutComponentBase
 @inject HttpClient HttpClient
+@inject NavigationManager NavManager
 
 <MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider/>
@@ -23,9 +25,18 @@
                      Label="Предмет подготовки">
                 @foreach (var subject in _subjects)
                 {
-                    <MudMenuItem Icon="@Icons.Material.Filled.Check"
-                                 IconColor="Color.Success"
-                                 Label="@subject.Name"/>
+                    if (subject.Id == _selectedSubjectId)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Check"
+                                     IconColor="Color.Success"
+                                     Label="@subject.Name"
+                                     @onclick="@(e => SetSelectedSubjectId(subject.Id))" />
+                    }
+                    else
+                    {
+                        <MudMenuItem Label="@subject.Name"
+                                     @onclick="@(e => SetSelectedSubjectId(subject.Id))" />
+                    }
                 }
             </MudMenu>
 
@@ -53,18 +64,21 @@
 </MudLayout>
 
 @code {
+    //Для работы локального хранилища
+    [Inject] IJSRuntime JSRuntime { get; set; }
+    //Переменные фреймворка по умолчанию
     private bool _drawerOpen = false;
     private bool _isDarkMode;
     private MudTheme? _theme = null;
     
     /*Мои переменные*/
     private ClientSubjectDTO[]? _subjects;
-    
-    [Inject] IJSRuntime JSRuntime { get; set; }
+    private Guid _selectedSubjectId;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        await GetSelectedSubjectId();
         
         var storageResult = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "isDarkMode");
         if (bool.TryParse(storageResult, out var isDarkMode))
@@ -93,11 +107,19 @@
         }
     }
 
+    #region Код фреймворка по умолчанию
+    
+    /// <summary>
+    /// Открыть/Закрыть меню навигации
+    /// </summary>
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
 
+    /// <summary>
+    /// Светлая/Темная тема
+    /// </summary>
     private async Task DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
@@ -149,4 +171,31 @@
         true => Icons.Material.Filled.WbSunny,
         false => Icons.Material.Outlined.DarkMode,
     };
+    
+    #endregion
+    
+    #region Код для выбора предмета обучения
+
+    private async Task GetSelectedSubjectId()
+    {
+        var storageSubjIdRes = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "curSubjId");
+
+        if (Guid.TryParse(storageSubjIdRes, out var selSubjId))
+        {
+            _selectedSubjectId = selSubjId;
+        }
+        else
+        {
+            _selectedSubjectId = ClientSubjectEnumeration.Math.Id;
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "curSubjId", _selectedSubjectId.ToString());
+        }
+    }
+
+    private void SetSelectedSubjectId(Guid subjectId)
+    {
+        _ = JSRuntime.InvokeVoidAsync("localStorage.setItem", "curSubjId", subjectId.ToString());
+        NavManager.NavigateTo("/", true);
+    }
+    
+    #endregion
 }
