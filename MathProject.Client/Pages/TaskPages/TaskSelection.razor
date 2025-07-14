@@ -1,0 +1,145 @@
+﻿@page "/select-task/{directionOfTrainingId:guid}"
+@using MathProject.Client.DTOS.DirectionOfTraining
+@using MathProject.Client.DTOS.LearningTopic
+@using MathProject.Client.DTOS.SubthemesOfLearning
+@inject HttpClient HttpClient
+
+<PageTitle>@_directionOfTrainingDTO?.Name | @_pageTitleText</PageTitle>
+
+@*Темы обучения*@
+<MudSelect @bind-Value="_selectedTask"
+           Label="Задание"
+           FullWidth="true"
+           Variant="Variant.Outlined"
+           Dense="true"
+           Margin="Margin.Dense"
+           Placeholder="Выберите задание"
+           Disabled="_isSuccessLearningTopics"
+           TItem="string" TValue="string" @onchange="OnSelectedTaskChanged">
+
+    @if (_learningTopicDTO != null)
+    {
+        @foreach (var task in _learningTopicDTO)
+        {
+            <MudSelectItem Value="@task.Id.ToString()">@task.Number. @task.Name</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@*Подтемы обучения*@
+<MudSelect @bind-Value="_selectedTheme"
+           Label="Тема"
+           FullWidth="true"
+           Variant="Variant.Outlined"
+           Dense="true"
+           Margin="Margin.Dense"
+           Placeholder="Выберите тему"
+           Clearable
+           TItem="string" TValue="string" @onchange="OnSelectedThemeChanged">
+    @foreach (var theme in _themes)
+    {
+        <MudSelectItem Value="@theme">@theme</MudSelectItem>
+    }
+</MudSelect>
+
+
+@if (_learningTopicDTO != null && !_learningTopicDTO.Any())
+{
+    <MudAlert Class="mt-2 mb-2" Severity="Severity.Warning" Variant="Variant.Filled">
+        Не удалось получить данные о "Заданиях" и "Темам"! Вернитесь на данную страницу позже!
+    </MudAlert>
+}
+
+<MudText>@_directionOfTrainingDTO?.Name</MudText>
+
+@if (!string.IsNullOrEmpty(_selectedTask) && !string.IsNullOrEmpty(_selectedTheme)
+                                          && _selectedTask != "null" && _selectedTheme != "null")
+{
+    <div>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   Class="mt-4"
+                   @onclick="LoadTask">
+            Загрузить задания
+        </MudButton>
+    </div>
+}
+
+@code {
+    //ID выбранного направление обучения
+    [Parameter]
+    public Guid DirectionOfTrainingId { get; set; }
+    
+    //Название страницы
+    private string _pageTitleText = "Выбор задания";
+    //Выбранное задание
+    private string _selectedTask;
+    //Выбранная тема
+    private string _selectedTheme;
+    
+    /// <summary>
+    /// Выбранное направление обучения
+    /// </summary>
+    private ClientDirectionOfTrainingFromSubjectIdDTO? _directionOfTrainingDTO;
+    /// <summary>
+    /// Темы обучения
+    /// </summary>
+    private ClientLearningTopicTaskSelectDTO[]? _learningTopicDTO;
+    /// <summary>
+    /// Подтемы обучения
+    /// </summary>
+    private ClientSubthemesOfLearningTaskSelectDTO[]? _subthemesOfLearningDTO;
+
+    /// <summary>
+    /// Параметр, отвечающий за Disable Select
+    /// </summary>
+    private bool _isSuccessLearningTopics = true;
+
+    private readonly string[] _themes =
+    [
+        "Числа и вычисления", "Алгебраические выражения", "Уравнения и неравенства",
+        "Функции и графики", "Геометрия", "Текстовые задачи"
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _selectedTask = string.Empty;
+        _selectedTheme = string.Empty;
+        
+        _directionOfTrainingDTO = await HttpClient
+            .GetFromJsonAsync<ClientDirectionOfTrainingFromSubjectIdDTO?>
+                ($"DirectionOfTraining/{DirectionOfTrainingId}");
+
+        _isSuccessLearningTopics = await GetLearningTopicsAsync();
+    }
+    
+    /// <summary>
+    /// Получает данные для ДТО и регулирует работу Select(-a)
+    /// </summary>
+    /// <returns>true/false для select disable параметра</returns>
+    private async Task<bool> GetLearningTopicsAsync()
+    {
+        _learningTopicDTO = await HttpClient
+            .GetFromJsonAsync<ClientLearningTopicTaskSelectDTO[]?>
+                ($"LearningTopics/get-learning-topics-from-dot/{DirectionOfTrainingId}");
+
+        return !(_learningTopicDTO != null && _learningTopicDTO.Any());
+    }
+
+    private void OnSelectedTaskChanged(ChangeEventArgs e)
+    {
+        _selectedTask = e.Value?.ToString();
+    }
+
+    private void OnSelectedThemeChanged(ChangeEventArgs e)
+    {
+        _selectedTheme = e.Value?.ToString();
+    }
+
+    private void LoadTask()
+    {
+        // Здесь можно реализовать логику перехода на другую страницу
+        // или загрузки контента через API или локальные данные
+        //NavigationManager.NavigateTo($"/task/{_selectedTask}/{_selectedTheme}");
+    }
+}

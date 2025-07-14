@@ -1,4 +1,4 @@
-﻿namespace MathProject.Client.DTOS;
+﻿namespace MathProject.Client.DTOS.Subject;
 
 public record ClientSubjectDTO
 {

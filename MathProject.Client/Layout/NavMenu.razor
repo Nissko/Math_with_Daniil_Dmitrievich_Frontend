@@ -1,6 +1,7 @@
 ﻿@using MathProject.Client.DTOS.DirectionOfTraining
 @using MathProject.Client.DTOS.TrainingCategory
 @using MathProject.Client.Enums.SubjectEnumeration
+@using MathProject.Client.Pages.TaskPages
 @inject HttpClient HttpClient
 @inject NavigationManager NavManager
 
@@ -23,7 +24,10 @@
                         {
                             @foreach (var directionOfTraining in filtered)
                             {
-                                <MudListItem T="string">@directionOfTraining.Name</MudListItem>
+                                <MudListItem T="string" 
+                                             @onclick="@(e => NavToTaskSelectPage(directionOfTraining.Id))">
+                                    @directionOfTraining.Name
+                                </MudListItem>
                             }
                         }
                         else
@@ -33,7 +37,7 @@
                     }
                     else
                     {
-                        <MudProgressCircular Size="Size.Small" Color="Color.Secondary" Indeterminate="true"/>
+                        <MudListItem T="string" Disabled="true"><MudSkeleton /></MudListItem>
                     }
                 </NestedList>
             </MudListItem>
@@ -41,15 +45,18 @@
     }
     else
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+        <MudListItem T="string"><MudSkeleton /></MudListItem>
+        <MudListItem T="string"><MudSkeleton /></MudListItem>
+        <MudListItem T="string"><MudSkeleton /></MudListItem>
+        <MudListItem T="string"><MudSkeleton /></MudListItem>
     }
-
 </MudNavMenu>
 
 @code
 {
     //Для работы локального хранилища
     [Inject] IJSRuntime JSRuntime { get; set; }
+    
     private Guid _selectedSubjectId;
     private ClientTrainingCategoryFromSubjectIdDTO[]? _trainingCategories;
     private ClientDirectionOfTrainingFromSubjectIdDTO[]? _directionOfTrainings;
@@ -85,5 +92,10 @@
     private void NavToHomePage()
     {
         NavManager.NavigateTo("/");
+    }
+
+    private void NavToTaskSelectPage(Guid directionOfTrainingId)
+    {
+        NavManager.NavigateTo($"/select-task/{directionOfTrainingId}");
     }
 }
