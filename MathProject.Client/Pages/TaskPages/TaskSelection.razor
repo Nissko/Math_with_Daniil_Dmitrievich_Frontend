@@ -2,20 +2,23 @@
 @using MathProject.Client.DTOS.DirectionOfTraining
 @using MathProject.Client.DTOS.LearningTopic
 @using MathProject.Client.DTOS.SubthemesOfLearning
+@inject ISnackbar Snackbar
 @inject HttpClient HttpClient
 
 <PageTitle>@_directionOfTrainingDTO?.Name | @_pageTitleText</PageTitle>
 
 @*Темы обучения*@
-<MudSelect @bind-Value="_selectedTask"
+<MudSelect T="string"
+           TValue="string"
+           Value="@_selectedTask"
+           ValueChanged="OnSelectedTaskChanged"
            Label="Задание"
            FullWidth="true"
            Variant="Variant.Outlined"
            Dense="true"
            Margin="Margin.Dense"
            Placeholder="Выберите задание"
-           Disabled="_isSuccessLearningTopics"
-           TItem="string" TValue="string" @onchange="OnSelectedTaskChanged">
+           Disabled="_isSuccessGetLearningTopics">
 
     @if (_learningTopicDTO != null)
     {
@@ -34,23 +37,25 @@
            Dense="true"
            Margin="Margin.Dense"
            Placeholder="Выберите тему"
+           Disabled="_isSuccessGetSubthemesOfLearning"
+           HelperText="@(string.IsNullOrEmpty(_selectedTask) ? "Сначала выберите задание" : "")"
            Clearable
            TItem="string" TValue="string" @onchange="OnSelectedThemeChanged">
-    @foreach (var theme in _themes)
+    @if (_subthemesOfLearningDTO != null)
     {
-        <MudSelectItem Value="@theme">@theme</MudSelectItem>
+        foreach (var subtheme in _subthemesOfLearningDTO)
+        {
+            <MudSelectItem Value="@subtheme.Id.ToString()">@subtheme.Name</MudSelectItem>
+        }
     }
 </MudSelect>
 
-
-@if (_learningTopicDTO != null && !_learningTopicDTO.Any())
+@*Ошибка при отсутствии записей из БД*@
+@if (_learningTopicDTO != null && !_learningTopicDTO.Any() && !_isShowSnackBar)
 {
-    <MudAlert Class="mt-2 mb-2" Severity="Severity.Warning" Variant="Variant.Filled">
-        Не удалось получить данные о "Заданиях" и "Темам"! Вернитесь на данную страницу позже!
-    </MudAlert>
+    _isShowSnackBar = true;
+    Snackbar.Add("Не удалось загрузить данные. Попробуйте позднее.", Severity.Warning);
 }
-
-<MudText>@_directionOfTrainingDTO?.Name</MudText>
 
 @if (!string.IsNullOrEmpty(_selectedTask) && !string.IsNullOrEmpty(_selectedTheme)
                                           && _selectedTask != "null" && _selectedTheme != "null")
@@ -73,9 +78,11 @@
     //Название страницы
     private string _pageTitleText = "Выбор задания";
     //Выбранное задание
-    private string _selectedTask;
+    private string _selectedTask = string.Empty;
     //Выбранная тема
-    private string _selectedTheme;
+    private string _selectedTheme = string.Empty;
+    //признак, показывалась ли ошибка(Warning)
+    private bool _isShowSnackBar = false;
     
     /// <summary>
     /// Выбранное направление обучения
@@ -91,28 +98,28 @@
     private ClientSubthemesOfLearningTaskSelectDTO[]? _subthemesOfLearningDTO;
 
     /// <summary>
-    /// Параметр, отвечающий за Disable Select
+    /// Параметр, отвечающий за Disable Select(Theme)
     /// </summary>
-    private bool _isSuccessLearningTopics = true;
-
-    private readonly string[] _themes =
-    [
-        "Числа и вычисления", "Алгебраические выражения", "Уравнения и неравенства",
-        "Функции и графики", "Геометрия", "Текстовые задачи"
-    ];
+    private bool _isSuccessGetLearningTopics = true;
+    /// <summary>
+    /// Параметр, отвечающий за Disable Select(Subtheme)
+    /// </summary>
+    private bool _isSuccessGetSubthemesOfLearning = true;
 
     protected override async Task OnParametersSetAsync()
     {
         _selectedTask = string.Empty;
         _selectedTheme = string.Empty;
+        _isSuccessGetSubthemesOfLearning = true;
         
         _directionOfTrainingDTO = await HttpClient
             .GetFromJsonAsync<ClientDirectionOfTrainingFromSubjectIdDTO?>
                 ($"DirectionOfTraining/{DirectionOfTrainingId}");
 
-        _isSuccessLearningTopics = await GetLearningTopicsAsync();
+        _isSuccessGetLearningTopics = await GetLearningTopicsAsync();
+        _isShowSnackBar = false;
     }
-    
+
     /// <summary>
     /// Получает данные для ДТО и регулирует работу Select(-a)
     /// </summary>
@@ -126,14 +133,44 @@
         return !(_learningTopicDTO != null && _learningTopicDTO.Any());
     }
 
-    private void OnSelectedTaskChanged(ChangeEventArgs e)
-    {
-        _selectedTask = e.Value?.ToString();
+    /// <summary>
+    /// Функция при изменении селекта "Задание"
+    /// </summary>
+    private async Task OnSelectedTaskChanged(string newTaskValue)
+    { 
+        _selectedTheme = string.Empty;
+        _isShowSnackBar = false;
+        _selectedTask = newTaskValue;
+        
+        if (!string.IsNullOrEmpty(_selectedTask))
+        {
+            _isSuccessGetSubthemesOfLearning = await GetSubThemesOfLearningAsync(_selectedTask);
+        }
     }
 
     private void OnSelectedThemeChanged(ChangeEventArgs e)
     {
         _selectedTheme = e.Value?.ToString();
+    }
+    
+    /// <summary>
+    /// Подгрузка тем, после выбора номера задания
+    /// </summary>
+    private async Task<bool> GetSubThemesOfLearningAsync(string selectedTask)
+    {
+        var learningTopicId = Guid.Parse(selectedTask);
+
+        _subthemesOfLearningDTO = await HttpClient
+            .GetFromJsonAsync<ClientSubthemesOfLearningTaskSelectDTO[]?>
+                ($"LearningTopics/get-subtheme-of-learnings/{learningTopicId}");
+
+        if (_subthemesOfLearningDTO != null && !_subthemesOfLearningDTO.Any() && !_isShowSnackBar)
+        {
+            _isShowSnackBar = true;
+            Snackbar.Add("Не удалось загрузить \"Темы\". Попробуйте позднее.", Severity.Warning);
+        }
+        
+        return !(_subthemesOfLearningDTO != null && _subthemesOfLearningDTO.Any());
     }
 
     private void LoadTask()

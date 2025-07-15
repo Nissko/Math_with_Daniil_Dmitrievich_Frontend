@@ -12,7 +12,11 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())"/>
-        <MudLink Href="" Underline="Underline.None" Color="Color.Default"><MudText Typo="Typo.h5" Class="ml-3">ErofeevClub</MudText></MudLink>
+        <MudLink Href="" Underline="Underline.None" Color="Color.Default">
+            <MudText Typo="Typo.h5" Class="ml-3" Style="font-weight: bold">
+                MATH<text style="color: darkred">PRO</text><text style="color: green">STO</text>
+            </MudText>
+        </MudLink>
         <MudSpacer/>
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
         <MudMenu Dense
